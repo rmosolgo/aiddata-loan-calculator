@@ -1,12 +1,11 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'json'
-require 'rdiscount'
 
 
 
 get '/' do
-  markdown "Grant element calculator, see https://github.com/rmosolgo/aiddata-loan-calculator for details"
+  "Grant element calculator, see https://github.com/rmosolgo/aiddata-loan-calculator for details"
 end
 
 get '/calculate' do
