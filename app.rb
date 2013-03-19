@@ -1,23 +1,21 @@
 require 'sinatra'
 require 'sinatra/reloader'
 require 'json'
+require 'rdiscount'
 
 
-get '/test' do
-	loan = {
-		face_value: 1000,
-		maturity: 10,
-		grace_period: 2.5,
-		interest_rate: 0.025,
-		discount_rate: 0.1
-	}
-
-	lifecycle = calculate_grant_element loan
-
-	JSON::dump(lifecycle)
-end
 
 get '/' do
+  markdown "Grant element calculator, see https://github.com/rmosolgo/aiddata-loan-calculator for details"
+end
+
+get '/calculate' do
+	loan = params_to_loan(params)
+	lifecycle = calculate_grant_element loan
+	JSON::dump(lifecycle)	
+end
+
+post '/calculate' do
 	loan = params_to_loan(params)
 	lifecycle = calculate_grant_element loan
 	JSON::dump(lifecycle)	
@@ -31,6 +29,9 @@ def params_to_loan(params)
 		interest_rate: (params[:interest_rate]  || default_interest_rate_for(params[:year])).to_f,
 		discount_rate: (params[:discount_rate] || default_discount_rate_for(params[:year])).to_f ,
 		include_lifecycle: params[:include_lifecycle] || false,
+		repayments_per_year: (params[:repayments_per_year] || 2).to_i, # defaults to semi-annual
+		disbursement_span_in_years: (params[:repayments_per_year] || 1).to_i, # defaults to lump sum
+		disbursements_per_year: (params[:repayments_per_year] || 1).to_i, # defaults lump sum
 	}
 end
 
@@ -46,13 +47,9 @@ def calculate_grant_element(loan)
 	#   
 
 
-	# These loan terms are required: VALUE, GRACE PD, MATURITY
+	# These loan terms are required: VALUE,  MATURITY
 	unless (face_value = loan[:value]) > 0
 		return { error: "No loan value provided"}
-	end
-
-	unless grace_period_in_years = loan[:grace_period]
-		return { error: "No grace period provided"}
 	end
 
 	unless	(maturity_in_years = loan[:maturity]) > 0
@@ -62,6 +59,7 @@ def calculate_grant_element(loan)
 
 	# These terms can have guesses provided
 	interest_rate = loan[:interest_rate]
+	grace_period_in_years = loan[:grace_period]
 	
 	if loan[:use_oecd_method]
 		discount_rate = 0.1
@@ -69,12 +67,10 @@ def calculate_grant_element(loan)
 		discount_rate = loan[:discount_rate] 
 	end
 
+	disbursement_span_in_years = loan[:disbursement_span_in_years] 
+	disbursements_per_year = loan[:disbursements_per_year] 
 
-	disbursement_span_in_years = loan[:disbursement_span_in_years] || 1 # defaults to lump sum
-	disbursements_per_year = loan[:disbursements_per_year] || 1 # defaults to lump sum
-
-	repayments_per_year = loan[:repayments_per_year] || 2 # defaults to semi-annual
-	repayment_plan = loan[:repayment_plan] || "EPP"
+	repayments_per_year = loan[:repayments_per_year]
 
 	# Begin calculations!
 	grace_periods = grace_period_in_years*repayments_per_year.round
