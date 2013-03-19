@@ -28,8 +28,8 @@ def params_to_loan(params)
 		value: params[:value].to_f,
 		grace_period: params[:grace_period].to_f || 0.0,
 		maturity: params[:maturity].to_f,
-		interest_rate: params[:interest_rate].to_f,
-		discount_rate: params[:discount_rate].to_f,
+		interest_rate: (params[:interest_rate]  || default_interest_rate_for(params[:year])).to_f,
+		discount_rate: (params[:discount_rate] || default_discount_rate_for(params[:year])).to_f ,
 		include_lifecycle: params[:include_lifecycle] || false,
 	}
 end
@@ -61,12 +61,12 @@ def calculate_grant_element(loan)
 
 
 	# These terms can have guesses provided
-	interest_rate = loan[:interest_rate] || default_interest_rate_for(loan[:year])
+	interest_rate = loan[:interest_rate]
 	
 	if loan[:use_oecd_method]
 		discount_rate = 0.1
 	else
-		discount_rate = loan[:discount_rate] || default_discount_rate_for(loan[:year])
+		discount_rate = loan[:discount_rate] 
 	end
 
 
